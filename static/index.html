@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GORO | Job Engine Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-900 text-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-10">
+            <h1 class="text-4xl font-bold text-blue-500">GORO <span
+                    class="text-white text-lg font-normal">Dashboard</span></h1>
+            <div id="status" class="px-4 py-1 rounded-full bg-red-900 text-red-200 text-sm">Disconnected</div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+            <div class="bg-gray-800 p-6 rounded-xl border-l-4 border-red-500">
+                <p class="text-gray-400 text-sm">CRITICAL</p>
+                <h2 id="stat-critical" class="text-3xl font-bold">0</h2>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-xl border-l-4 border-yellow-500">
+                <p class="text-gray-400 text-sm">DLQ (FAILED)</p>
+                <h2 id="stat-dlq" class="text-3xl font-bold">0</h2>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-xl border-l-4 border-green-500">
+                <p class="text-gray-400 text-sm">ACTIVE WORKERS</p>
+                <h2 id="stat-workers" class="text-3xl font-bold">0</h2>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-xl border-l-4 border-blue-500">
+                <p class="text-gray-400 text-sm">DEFAULT QUEUE</p>
+                <h2 id="stat-default" class="text-3xl font-bold">0</h2>
+            </div>
+        </div>
+
+        <!-- Recent Jobs Table -->
+        <div class="bg-gray-800 rounded-xl overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-gray-700 flex justify-between">
+                <h3 class="font-bold">Recent Jobs</h3>
+                <button onclick="location.reload()" class="text-sm text-blue-400 hover:underline">Refresh View</button>
+            </div>
+            <table class="w-full text-left">
+                <thead class="bg-gray-700 text-xs uppercase text-gray-400">
+                    <tr>
+                        <th class="p-4">ID</th>
+                        <th class="p-4">Type</th>
+                        <th class="p-4">Priority</th>
+                        <th class="p-4">Status</th>
+                        <th class="p-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="job-table-body">
+                    <!-- Jobs injected here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/stats`);
+        const statusEl = document.getElementById('status');
+
+        ws.onopen = () => {
+            statusEl.innerText = "Live Connected";
+            statusEl.className = "px-4 py-1 rounded-full bg-green-900 text-green-200 text-sm";
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            // Update Stats
+            document.getElementById('stat-critical').innerText = data.critical;
+            document.getElementById('stat-dlq').innerText = data.dlq;
+            document.getElementById('stat-workers').innerText = data.active_workers;
+            document.getElementById('stat-default').innerText = data.default;
+
+            // Update Table
+            const tbody = document.getElementById('job-table-body');
+            tbody.innerHTML = data.recent_jobs.map(job => `
+                <tr class="border-b border-gray-700 hover:bg-gray-750 transition">
+                    <td class="p-4 font-mono text-xs text-blue-300">${job.id.substring(0, 8)}...</td>
+                    <td class="p-4">${job.type}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded bg-gray-700 text-xs">${job.priority}</span></td>
+                    <td class="p-4">
+                        <span class="text-xs ${job.status === 'failed' ? 'text-red-400' : 'text-green-400'}">
+                            ● ${job.status}
+                        </span>
+                    </td>
+                    <td class="p-4">
+                        ${job.status === 'failed' ?
+                    `<button onclick="retry('${job.id}')" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1 rounded">Retry</button>` :
+                    '--'}
+                    </td>
+                </tr>
+            `).join('');
+        };
+
+        async function retry(id) {
+            const url = `http://localhost:8080/dlq/${id}/requeue`;
+
+            try {
+                const response = await fetch(url, { method: 'POST' });
+
+                if (response.ok) {
+                    alert("Job successfully moved back to queue!");
+                } else {
+                    const errorData = await response.json();
+                    alert("Error: " + errorData.error);
+                }
+            } catch (err) {
+                console.error("Network error:", err);
+                alert("Could not connect to the server.");
+            }
+        }
+
+        ws.onclose = () => {
+            statusEl.innerText = "Disconnected";
+            statusEl.className = "px-4 py-1 rounded-full bg-red-900 text-red-200 text-sm";
+        };
+    </script>
+</body>
+
+</html>

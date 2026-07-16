@@ -5,24 +5,24 @@
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-[cite_start]**GORO** is a production-grade, horizontally scalable Distributed Task Queue built in Go[cite: 6, 26]. [cite_start]It allows applications to offload background work (like sending emails, image processing, and webhooks) to a pool of concurrent workers[cite: 7]. 
+**GORO** is a production-grade, horizontally scalable Distributed Task Queue built in Go. It allows applications to offload background work (like sending emails, image processing, and webhooks) to a pool of concurrent workers. 
 
-[cite_start]Unlike simple FIFO lists, GORO is built for reliability and observability, featuring priority scheduling, smart retry logic, a Dead Letter Queue, and a real-time web dashboard[cite: 8].
+Unlike simple FIFO lists, GORO is built for reliability and observability, featuring priority scheduling, smart retry logic, a Dead Letter Queue, and a real-time web dashboard.
 
 ---
 
 ## ✨ Key Features
 
-* [cite_start]**🚦 4-Level Priority Scheduling:** Jobs are processed based on priority (`critical`, `high`, `default`, `low`)[cite: 12]. [cite_start]*Note: Low-priority jobs are guaranteed to run within a set timeframe via a starvation check.* [cite: 508]
-* [cite_start]**🛡️ Resilient Retry & DLQ:** Features exponential backoff for failed jobs before eventually moving them to an inspectable Dead Letter Queue (DLQ)[cite: 13].
-* [cite_start]**📊 Prometheus Observability:** Exposes a `/metrics` endpoint tracking job throughput, latency, and queue depth for full system visibility[cite: 14].
-* [cite_start]**⚡ Real-Time Dashboard:** A live, dependency-free (Vanilla JS + HTML) WebSocket dashboard served directly by the Go server to monitor worker heartbeats and job events[cite: 15, 327, 329].
+* **🚦 4-Level Priority Scheduling:** Jobs are processed based on priority (`critical`, `high`, `default`, `low`). *Note: Low-priority jobs are guaranteed to run within a set timeframe via a starvation check.*
+* **🛡️ Resilient Retry & DLQ:** Features exponential backoff for failed jobs before eventually moving them to an inspectable Dead Letter Queue (DLQ).
+* **📊 Prometheus Observability:** Exposes a `/metrics` endpoint tracking job throughput, latency, and queue depth for full system visibility.
+* **⚡ Real-Time Dashboard:** A live, dependency-free (Vanilla JS + HTML) WebSocket dashboard served directly by the Go server to monitor worker heartbeats and job events.
 
 ---
 
 ## 🏗️ Architecture
 
-[cite_start]The system is split into two independently runnable binaries (API Server and Worker Pool) that communicate strictly through Redis, enabling seamless horizontal scaling[cite: 25, 26].
+The system is split into two independently runnable binaries (API Server and Worker Pool) that communicate strictly through Redis, enabling seamless horizontal scaling.
 
 ```text
  ┌──────────────┐       HTTP POST /jobs        ┌─────────────────────┐
@@ -45,6 +45,3 @@
                          └──────┬───────┘
                                 │
              success ◄──────────┴──────────► fail → retry → DLQ
-
-
-
